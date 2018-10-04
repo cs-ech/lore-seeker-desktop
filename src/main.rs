@@ -12,8 +12,11 @@ mod version;
 
 use nwg::{
     Event,
+    LabelT,
     Ui,
+    constants::HTextAlign,
     dispatch_events,
+    error_message,
     fatal_message
 };
 use open::that as open;
@@ -36,7 +39,7 @@ pub enum GuiId {
 nwg_template!(
     head: setup_ui<GuiId>,
     controls: [
-        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 60))),
+        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 50))),
         (SearchInput, nwg_textinput!(
             parent=MainWindow;
             position=(5, 5);
@@ -50,19 +53,22 @@ nwg_template!(
             size=(75, 23);
             font=Some(TextFont)
         )),
-        (Label(0), nwg_label!(
-            parent=MainWindow;
-            text=&format!("Lore Seeker Desktop version {}", version::GIT_COMMIT_HASH[..7]);
-            position=(5, 30);
-            size=(100, 25);
-            font=Some(TextFont)
-        ))
+        (Label(0), LabelT {
+            parent: MainWindow,
+            text: format!("Lore Seeker Desktop version {}", &version::GIT_COMMIT_HASH[..7]),
+            position: (5, 30),
+            size: (300, 25),
+            font: Some(TextFont),
+            visible: true,
+            disabled: true,
+            align: HTextAlign::Left
+        })
     ];
     events: [
         (SearchButton, StartSearch, Event::Click, |ui, _, _, _| {
             let query = nwg_get!(ui; (SearchInput, nwg::TextInput)).get_text();
             if let Err(e) = open(&format!("https://loreseeker.fenhl.net/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
-                fatal_message("Error opening website", &format!("{:?}", e));
+                error_message("Error opening website", &format!("{:?}", e));
             }
         })
     ];
