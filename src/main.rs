@@ -5,63 +5,60 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use] extern crate native_windows_gui as nwg;
+extern crate open;
+extern crate urlencoding;
 
 use nwg::{
     Event,
     Ui,
     dispatch_events,
-    fatal_message,
-    simple_message
+    fatal_message
 };
+use open::that as open;
 use self::GuiId::*;
 
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum GuiId {
     // controls
     MainWindow,
-    NameInput,
-    HelloButton,
-    Label(u8),
+    SearchInput,
+    SearchButton,
+    //Label(u8),
     // events
-    SayHello,
+    StartSearch,
     // resources
-    MainFont,
+    //LargeFont,
     TextFont
 }
 
 nwg_template!(
     head: setup_ui<GuiId>,
     controls: [
-        (MainWindow, nwg_window!(title="Template Example"; size=(280, 105))),
-        (Label(0), nwg_label!(
+        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 35))),
+        (SearchInput, nwg_textinput!(
             parent=MainWindow;
-            text="Your Name: ";
-            position=(5, 15);
-            size=(80, 25);
+            position=(5, 5);
+            size=(212, 21);
             font=Some(TextFont)
         )),
-        (NameInput, nwg_textinput!(
+        (SearchButton, nwg_button!(
             parent=MainWindow;
-            position=(85, 13);
-            size=(185, 22);
+            text="Search";
+            position=(221, 4);
+            size=(75, 23);
             font=Some(TextFont)
-        )),
-        (HelloButton, nwg_button!(
-            parent=MainWindow;
-            text="Hello World!";
-            position=(5, 45);
-            size=(270, 50);
-            font=Some(MainFont)
         ))
     ];
     events: [
-        (HelloButton, SayHello, Event::Click, |ui, _, _, _| {
-            let your_name = nwg_get!(ui; (NameInput, nwg::TextInput));
-            simple_message("Hello", &format!("Hello {}!", your_name.get_text()));
+        (SearchButton, StartSearch, Event::Click, |ui, _, _, _| {
+            let query = nwg_get!(ui; (SearchInput, nwg::TextInput)).get_text();
+            if let Err(e) = open(&format!("https://loreseeker.fenhl.net/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
+                fatal_message("Error opening website", &format!("{:?}", e));
+            }
         })
     ];
     resources: [
-        (MainFont, nwg_font!(family="Arial"; size=27)),
+        //(LargeFont, nwg_font!(family="Arial"; size=27)),
         (TextFont, nwg_font!(family="Arial"; size=17))
     ];
     values: []
