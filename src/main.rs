@@ -88,6 +88,6 @@ fn gui_main() -> Result<(), nwg::Error> {
 
 fn main() {
     if let Err(e) = gui_main() {
-        fatal_message("Fatal Error", &format!("{:?}", e));
+        fatal_message("Error creating GUI", &format!("{:?}", e));
     }
 }
