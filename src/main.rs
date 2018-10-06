@@ -8,10 +8,10 @@ extern crate itertools;
 #[macro_use] extern crate native_windows_gui as nwg;
 extern crate open;
 extern crate reqwest;
-extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate urlencoding;
 
+mod update;
 mod version;
 
 use std::{
@@ -104,7 +104,7 @@ fn update_loop() {
             Ok(false) => {
                 unimplemented!(); //TODO ask if Lore Seeker should be updated
             }
-            Err(e) => { fatal_message("Error checking for updates", &format("{:?}", e)); }
+            Err(e) => { fatal_message("Error checking for updates", &format!("{:?}", e)); }
         }
         thread::sleep(Duration::from_secs(3600));
     }
@@ -112,7 +112,7 @@ fn update_loop() {
 
 fn main() {
     if let Err(e) = thread::Builder::new().name("Lore Seeker update check".into()).spawn(update_loop) {
-        fatal_message("Error starting update check", &format("{:?}", e));
+        fatal_message("Error starting update check", &format!("{:?}", e));
     }
     if let Err(e) = gui_main() {
         fatal_message("Error creating GUI", &format!("{:?}", e));
