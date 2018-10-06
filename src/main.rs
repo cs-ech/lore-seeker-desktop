@@ -12,6 +12,7 @@ extern crate reqwest;
 extern crate urlencoding;
 
 mod update;
+mod util;
 mod version;
 
 use std::{
@@ -30,7 +31,8 @@ use nwg::{
 use open::that as open;
 use self::{
     GuiId::*,
-    update::update_check
+    update::update_check,
+    util::yesno
 };
 
 #[derive(Debug, Clone, Copy, Hash)]
@@ -102,10 +104,15 @@ fn update_loop() {
         match update_check() {
             Ok(true) => (),
             Ok(false) => {
-                unimplemented!(); //TODO ask if Lore Seeker should be updated
+                if yesno("An update for Lore Seeker Desktop is available. Open download page now?") { //TODO download update automatically instead
+                    if let Err(e) = open("https://github.com/fenhl/lore-seeker-desktop/releases") {
+                        error_message("Lore Seeker: Error opening download page", &format!("{:?}", e));
+                    }
+                }
             }
             Err(e) => { error_message("Lore Seeker: Error checking for updates", &format!("{}", e)); }
         }
+        //TODO check for updated Cockatrice files
         thread::sleep(Duration::from_secs(3600));
     }
 }
