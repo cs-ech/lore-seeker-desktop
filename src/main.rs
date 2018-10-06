@@ -4,12 +4,20 @@
 
 #![windows_subsystem = "windows"]
 
+extern crate itertools;
 #[macro_use] extern crate native_windows_gui as nwg;
 extern crate open;
+extern crate reqwest;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 extern crate urlencoding;
 
 mod version;
 
+use std::{
+    thread,
+    time::Duration
+};
 use nwg::{
     Event,
     LabelT,
@@ -20,7 +28,10 @@ use nwg::{
     fatal_message
 };
 use open::that as open;
-use self::GuiId::*;
+use self::{
+    GuiId::*,
+    update::update_check
+};
 
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum GuiId {
@@ -86,7 +97,23 @@ fn gui_main() -> Result<(), nwg::Error> {
     Ok(())
 }
 
+fn update_loop() {
+    loop {
+        match update_check() {
+            Ok(true) => (),
+            Ok(false) => {
+                unimplemented!(); //TODO ask if Lore Seeker should be updated
+            }
+            Err(e) => { fatal_message("Error checking for updates", &format("{:?}", e)); }
+        }
+        thread::sleep(Duration::from_secs(3600));
+    }
+}
+
 fn main() {
+    if let Err(e) = thread::Builder::new().name("Lore Seeker update check".into()).spawn(update_loop) {
+        fatal_message("Error starting update check", &format("{:?}", e));
+    }
     if let Err(e) = gui_main() {
         fatal_message("Error creating GUI", &format!("{:?}", e));
     }
