@@ -79,7 +79,7 @@ nwg_template!(
         (SearchButton, StartSearch, Event::Click, |ui, _, _, _| {
             let query = nwg_get!(ui; (SearchInput, nwg::TextInput)).get_text();
             if let Err(e) = open(&format!("https://loreseeker.fenhl.net/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
-                error_message("Error opening website", &format!("{:?}", e));
+                error_message("Lore Seeker: Error opening website", &format!("{:?}", e));
             }
         })
     ];
@@ -104,7 +104,7 @@ fn update_loop() {
             Ok(false) => {
                 unimplemented!(); //TODO ask if Lore Seeker should be updated
             }
-            Err(e) => { fatal_message("Error checking for updates", &format!("{:?}", e)); }
+            Err(e) => { error_message("Lore Seeker: Error checking for updates", &format!("{}", e)); }
         }
         thread::sleep(Duration::from_secs(3600));
     }
@@ -112,9 +112,9 @@ fn update_loop() {
 
 fn main() {
     if let Err(e) = thread::Builder::new().name("Lore Seeker update check".into()).spawn(update_loop) {
-        fatal_message("Error starting update check", &format!("{:?}", e));
+        fatal_message("Lore Seeker: Error starting update check", &format!("{:?}", e));
     }
     if let Err(e) = gui_main() {
-        fatal_message("Error creating GUI", &format!("{:?}", e));
+        fatal_message("Lore Seeker: Error creating GUI", &format!("{:?}", e));
     }
 }

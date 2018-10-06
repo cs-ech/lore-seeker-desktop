@@ -1,3 +1,4 @@
+use std::fmt;
 use itertools::Itertools;
 use reqwest;
 use super::version;
@@ -27,6 +28,15 @@ pub enum Error {
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Error {
         Error::Reqwest(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::Reqwest(ref e) => e.fmt(f),
+            Error::TagNotFound => write!(f, "Release tag not found.")
+        }
     }
 }
 
