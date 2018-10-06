@@ -4,16 +4,12 @@
 
 #![windows_subsystem = "windows"]
 
-extern crate itertools;
+extern crate lore_seeker_desktop;
 #[macro_use] extern crate native_windows_gui as nwg;
 extern crate open;
-extern crate reqwest;
-#[macro_use] extern crate serde_derive;
 extern crate urlencoding;
 
-mod update;
 mod util;
-mod version;
 
 use std::{
     thread,
@@ -29,9 +25,12 @@ use nwg::{
     fatal_message
 };
 use open::that as open;
+use lore_seeker_desktop::{
+    update::update_check,
+    version::GIT_COMMIT_HASH
+};
 use self::{
     GuiId::*,
-    update::update_check,
     util::yesno
 };
 
@@ -68,7 +67,7 @@ nwg_template!(
         )),
         (Label(0), LabelT {
             parent: MainWindow,
-            text: format!("Lore Seeker Desktop version {}", &version::GIT_COMMIT_HASH[..7]),
+            text: format!("Lore Seeker Desktop version {}", &GIT_COMMIT_HASH[..7]),
             position: (5, 30),
             size: (300, 25),
             font: Some(TextFont),
