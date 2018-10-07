@@ -6,8 +6,14 @@
 #![forbid(unused_import_braces)]
 
 extern crate itertools;
+#[cfg(windows)] extern crate native_windows_gui as nwg;
 extern crate reqwest;
 #[macro_use] extern crate serde_derive;
+extern crate tempfile;
+#[macro_use] extern crate wrapped_enum;
 
+pub mod github;
+pub mod trice;
 pub mod update;
+pub mod util;
 pub mod version;

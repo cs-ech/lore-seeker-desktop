@@ -8,6 +8,13 @@ name = "lore_seeker_desktop"
 path = "src/lib.rs"
 
 [[bin]]
+name = "install-cockatrice"
+path = "src/bin/install-cockatrice.rs"
+doc = false
+test = false
+bench = false
+
+[[bin]]
 name = "lore-seeker-windows"
 path = "src/main.rs"
 doc = false
@@ -30,5 +37,6 @@ reqwest = "*"
 semver = "*"
 serde = "1.0"
 serde_derive = "1.0"
+tempfile = "*"
 urlencoding = "*"
 wrapped_enum = "*"

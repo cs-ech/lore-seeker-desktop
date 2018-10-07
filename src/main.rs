@@ -9,8 +9,6 @@ extern crate lore_seeker_desktop;
 extern crate open;
 extern crate urlencoding;
 
-mod util;
-
 use std::{
     thread,
     time::Duration
@@ -26,13 +24,12 @@ use nwg::{
 };
 use open::that as open;
 use lore_seeker_desktop::{
+    trice,
     update::update_check,
+    util::yesno,
     version::GIT_COMMIT_HASH
 };
-use self::{
-    GuiId::*,
-    util::yesno
-};
+use self::GuiId::*;
 
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum GuiId {
@@ -40,9 +37,11 @@ pub enum GuiId {
     MainWindow,
     SearchInput,
     SearchButton,
+    InstallTriceButton,
     Label(u8),
     // events
     StartSearch,
+    InstallTrice,
     // resources
     //LargeFont,
     TextFont
@@ -51,7 +50,7 @@ pub enum GuiId {
 nwg_template!(
     head: setup_ui<GuiId>,
     controls: [
-        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 50))),
+        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 57))),
         (SearchInput, nwg_textinput!(
             parent=MainWindow;
             position=(5, 5);
@@ -63,6 +62,13 @@ nwg_template!(
             text="Search";
             position=(221, 4);
             size=(75, 23);
+            font=Some(TextFont)
+        )),
+        (InstallTriceButton, nwg_button!(
+            parent=MainWindow;
+            text="Install Cockatrice";
+            position=(4, 30);
+            size=(292, 23);
             font=Some(TextFont)
         )),
         (Label(0), LabelT {
@@ -81,6 +87,11 @@ nwg_template!(
             let query = nwg_get!(ui; (SearchInput, nwg::TextInput)).get_text();
             if let Err(e) = open(&format!("https://loreseeker.fenhl.net/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
                 error_message("Lore Seeker: Error opening website", &format!("{:?}", e));
+            }
+        }),
+        (InstallTriceButton, InstallTrice, Event::Click, |_, _, _, _| {
+            if let Err(e) = trice::install(false) {
+                error_message("Lore Seeker: Error installing Cockatrice", &format!("{}", e));
             }
         })
     ];
