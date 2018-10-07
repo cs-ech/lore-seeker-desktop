@@ -1,3 +1,5 @@
+extern crate winres;
+
 use std::{
     fs::File,
     io::{
@@ -6,6 +8,7 @@ use std::{
     },
     process::Command
 };
+use winres::WindowsResource;
 
 /// Modified from <https://stackoverflow.com/questions/43753491/include-git-commit-hash-as-string-into-rust-program>
 fn get_git_hash() -> String {
@@ -25,10 +28,17 @@ fn get_git_hash() -> String {
 
 fn main() -> Result<(), io::Error> {
     println!("cargo:rerun-if-changed=nonexistent.foo"); // check a nonexistent file to make sure build script is always run (see https://github.com/rust-lang/cargo/issues/4213)
-    let mut f = File::create("src/version.rs")?;
-    writeln!(f, "//! Contains versioning information.")?;
-    writeln!(f, "")?;
-    writeln!(f, "/// The hash of the current commit of the lore-seeker-desktop repo at compile time.")?;
-    writeln!(f, "pub const GIT_COMMIT_HASH: &str = \"{}\";", get_git_hash())?;
+    {
+        let mut f = File::create("src/version.rs")?;
+        writeln!(f, "//! Contains versioning information.")?;
+        writeln!(f, "")?;
+        writeln!(f, "/// The hash of the current commit of the lore-seeker-desktop repo at compile time.")?;
+        writeln!(f, "pub const GIT_COMMIT_HASH: &str = \"{}\";", get_git_hash())?;
+    } // close src/version.rs
+    #[cfg(windows)] {
+        let mut res = WindowsResource::new();
+        res.set_icon("assets/lore-seeker.ico");
+        res.compile()?;
+    }
     Ok(())
 }

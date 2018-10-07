@@ -38,6 +38,7 @@ wrapped_enum! {
 }
 
 fn main() -> Result<(), Error> {
+    //TODO make sure working dir is clean and on master and up to date with remote and remote is up to date. Alternatively, make sure we're on gitdir master and up to date
     let local_version = cargo_metadata::metadata(None)?.packages.first().ok_or(OtherError::MissingPackage)?.version.parse::<Version>()?;
     let remote_version = update::latest_release_tag_name(&util::client()?)?[1..].parse::<Version>()?;
     match local_version.cmp(&remote_version) {

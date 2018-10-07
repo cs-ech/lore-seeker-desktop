@@ -28,6 +28,9 @@ doc = false
 test = false
 bench = false
 
+[build-dependencies]
+winres = "0.1"
+
 [dependencies]
 cargo_metadata = "*"
 itertools = "*"
