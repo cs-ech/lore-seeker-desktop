@@ -45,6 +45,7 @@ wrapped_enum! {
         GitHub(github::Error),
         Io(io::Error),
         Other(OtherError),
+        ReleaseClient(util::ReleaseClientError),
         Reqwest(reqwest::Error),
         SemVer(SemVerError)
     }
@@ -53,7 +54,7 @@ wrapped_enum! {
 fn main() -> Result<(), Error> {
     //TODO make sure working dir is clean and on master and up to date with remote and remote is up to date. Alternatively, make sure we're on gitdir master and up to date
     let repo = Repo::new("fenhl", "lore-seeker-desktop");
-    let client = util::client()?;
+    let client = util::release_client()?;
     let local_version = cargo_metadata::metadata(None)?.packages.first().ok_or(OtherError::MissingPackage)?.version.parse::<Version>()?;
     let remote_version = repo.latest_release(&client)?.tag_name[1..].parse::<Version>()?;
     match local_version.cmp(&remote_version) {
