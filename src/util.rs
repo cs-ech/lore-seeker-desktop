@@ -5,7 +5,8 @@ use std::{
     io::{
         self,
         prelude::*
-    }
+    },
+    time::Duration
 };
 #[cfg(windows)]
 use nwg::{
@@ -47,7 +48,7 @@ pub fn release_client() -> Result<reqwest::Client, ReleaseClientError> {
     File::open("assets/release-token")?.read_to_string(&mut token)?;
     headers.insert(reqwest::header::AUTHORIZATION, reqwest::header::HeaderValue::from_str(&format!("token {}", token))?);
     headers.insert(reqwest::header::USER_AGENT, reqwest::header::HeaderValue::from_static(concat!("lore-seeker-desktop/", env!("CARGO_PKG_VERSION"))));
-    Ok(reqwest::Client::builder().default_headers(headers).build()?)
+    Ok(reqwest::Client::builder().default_headers(headers).timeout(Duration::from_secs(600)).build()?)
 }
 
 /// Asks the user a yes/no question and returns the answer.
