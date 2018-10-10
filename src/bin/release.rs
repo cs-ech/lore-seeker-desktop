@@ -73,7 +73,7 @@ fn main() -> Result<(), Error> {
         release_notes_file.read_to_string(&mut buf)?;
         buf
     };
-    let release = repo.create_release(&client, format!("Lore Seeker {}", local_version), format!("v{}", local_version), release_notes)?;
+    let release = repo.create_release(&client, format!("Lore Seeker Desktop {}", local_version), format!("v{}", local_version), release_notes)?;
     repo.release_attach(&client, &release, "lore-seeker-windows-64bit.exe", "application/vnd.microsoft.portable-executable", File::open("target/release/lore-seeker-windows.exe")?)?;
     repo.release_attach(&client, &release, "lore-seeker-windows-32bit.exe", "application/vnd.microsoft.portable-executable", File::open("target-x86/release/lore-seeker-windows.exe")?)?;
     repo.publish_release(&client, release)?;
