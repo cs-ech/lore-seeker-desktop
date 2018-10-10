@@ -8,3 +8,6 @@
 
 # build script artifacts
 /src/version.rs
+
+# GitHub API OAuth token for the release script
+/assets/release-token
