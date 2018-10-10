@@ -45,7 +45,7 @@ pub fn release_client() -> Result<reqwest::Client, ReleaseClientError> {
     let mut headers = reqwest::header::HeaderMap::new();
     let mut token = String::default();
     File::open("assets/release-token")?.read_to_string(&mut token)?;
-    headers.insert(reqwest::header::AUTHORIZATION, reqwest::header::HeaderValue::from_str(&token)?);
+    headers.insert(reqwest::header::AUTHORIZATION, reqwest::header::HeaderValue::from_str(&format!("token {}", token))?);
     headers.insert(reqwest::header::USER_AGENT, reqwest::header::HeaderValue::from_static(concat!("lore-seeker-desktop/", env!("CARGO_PKG_VERSION"))));
     Ok(reqwest::Client::builder().default_headers(headers).build()?)
 }
