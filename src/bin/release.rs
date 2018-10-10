@@ -62,7 +62,7 @@ fn main() -> Result<(), Error> {
         Greater => ()
     }
     if !Command::new("cargo").arg("build").arg("--bin=lore-seeker-windows").arg("--release").status()?.success() { return Err(OtherError::Command.into()); }
-    if !Command::new("cargo").arg("+stable-pc-i686-msvc").arg("build").arg("--bin=lore-seeker-windows").arg("--release").arg("--target-dir=target-x86").status()?.success() { return Err(OtherError::Command.into()); }
+    if !Command::new("cargo").arg("+stable-i686-pc-windows-msvc").arg("build").arg("--bin=lore-seeker-windows").arg("--release").arg("--target-dir=target-x86").status()?.success() { return Err(OtherError::Command.into()); }
     let release_notes = {
         let mut release_notes_file = tempfile::Builder::new()
             .prefix("lore-seeker-desktop-release-notes")
