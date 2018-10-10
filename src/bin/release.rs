@@ -6,21 +6,33 @@ extern crate cargo_metadata;
 extern crate lore_seeker_desktop;
 extern crate reqwest;
 extern crate semver;
+extern crate tempfile;
 #[macro_use] extern crate wrapped_enum;
 
-use std::cmp::Ordering::*;
+use std::{
+    cmp::Ordering::*,
+    fs::File,
+    io::{
+        self,
+        prelude::*
+    },
+    process::Command
+};
 use semver::{
     SemVerError,
     Version
 };
 use lore_seeker_desktop::{
-    github,
-    update,
+    github::{
+        self,
+        Repo
+    },
     util
 };
 
 #[derive(Debug)]
 enum OtherError {
+    Command,
     MissingPackage,
     SameVersion,
     VersionRegression
@@ -31,6 +43,7 @@ wrapped_enum! {
     enum Error {
         Cargo(cargo_metadata::Error),
         GitHub(github::Error),
+        Io(io::Error),
         Other(OtherError),
         Reqwest(reqwest::Error),
         SemVer(SemVerError)
@@ -39,17 +52,30 @@ wrapped_enum! {
 
 fn main() -> Result<(), Error> {
     //TODO make sure working dir is clean and on master and up to date with remote and remote is up to date. Alternatively, make sure we're on gitdir master and up to date
+    let repo = Repo::new("fenhl", "lore-seeker-desktop");
+    let client = util::client()?;
     let local_version = cargo_metadata::metadata(None)?.packages.first().ok_or(OtherError::MissingPackage)?.version.parse::<Version>()?;
-    let remote_version = update::latest_release_tag_name(&util::client()?)?[1..].parse::<Version>()?;
+    let remote_version = repo.latest_release(&client)?.tag_name[1..].parse::<Version>()?;
     match local_version.cmp(&remote_version) {
         Less => { return Err(OtherError::VersionRegression.into()); }
         Equal => { return Err(OtherError::SameVersion.into()); }
         Greater => ()
     }
-    unimplemented!();
-    //TODO cargo build --bin=lore-seeker-desktop --release
-    //TODO cargo +stable-pc-i686-msvc build --bin=lore-seeker-desktop --release --target-dir=target-x86
-    //TODO upload new release (POST /repos/fenhl/lore-seeker-desktop/releases)
-    //TODO attach target/release/lore-seeker-windows.exe as lore-seeker-windows-64bit.exe
-    //TODO attach target-x8/release/lore-seeker-windows.exe as lore-seeker-windows-32bit.exe
+    if !Command::new("cargo").arg("build").arg("--bin=lore-seeker-desktop").arg("--release").status()?.success() { return Err(OtherError::Command.into()); }
+    if !Command::new("cargo").arg("+stable-pc-i686-msvc").arg("build").arg("--bin=lore-seeker-desktop").arg("--release").arg("--target-dir=target-x86").status()?.success() { return Err(OtherError::Command.into()); }
+    let release_notes = {
+        let mut release_notes_file = tempfile::Builder::new()
+            .prefix("lore-seeker-desktop-release-notes")
+            .suffix(".md")
+            .tempfile()?;
+        if !Command::new("nano").arg(release_notes_file.path()).status()?.success() { return Err(OtherError::Command.into()); }
+        let mut buf = String::default();
+        release_notes_file.read_to_string(&mut buf)?;
+        buf
+    };
+    let release = repo.create_release(&client, format!("Lore Seeker {}", local_version), format!("v{}", local_version), release_notes)?;
+    repo.release_attach(&client, &release, "lore-seeker-windows-64bit.exe", "application/vnd.microsoft.portable-executable", File::open("target/release/lore-seeker-windows.exe")?)?;
+    repo.release_attach(&client, &release, "lore-seeker-windows-32bit.exe", "application/vnd.microsoft.portable-executable", File::open("target-x86/release/lore-seeker-windows.exe")?)?;
+    repo.publish_release(&client, release)?;
+    Ok(())
 }

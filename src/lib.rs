@@ -9,6 +9,7 @@ extern crate itertools;
 #[cfg(windows)] extern crate native_windows_gui as nwg;
 extern crate reqwest;
 #[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde_json;
 extern crate tempfile;
 #[macro_use] extern crate wrapped_enum;
 
