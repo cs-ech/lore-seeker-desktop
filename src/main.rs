@@ -4,134 +4,115 @@
 
 #![windows_subsystem = "windows"]
 
-extern crate lore_seeker_desktop;
-#[macro_use] extern crate native_windows_gui as nwg;
-extern crate open;
-extern crate urlencoding;
-
 use std::{
-    thread,
+    process::exit,
     time::Duration
 };
-use nwg::{
-    Event,
-    LabelT,
-    Ui,
-    constants::HTextAlign,
-    dispatch_events,
-    error_message,
-    fatal_message
+use azul::{
+    dialogs::{
+        msg_box,
+        save_file_dialog
+    },
+    prelude::*,
+    widgets::{
+        button::Button,
+        label::Label,
+        text_input::{
+            TextInput,
+            TextInputState
+        }
+    }
 };
 use open::that as open;
 use lore_seeker_desktop::{
     trice,
-    update::update_check,
-    util::yesno,
+    update::{
+        download_update,
+        update_check
+    },
+    util::*,
     version::GIT_COMMIT_HASH
 };
-use self::GuiId::*;
 
-#[derive(Debug, Clone, Copy, Hash)]
-pub enum GuiId {
-    // controls
-    MainWindow,
-    SearchInput,
-    SearchButton,
-    InstallTriceButton,
-    Label(u8),
-    // events
-    StartSearch,
-    InstallTrice,
-    // resources
-    //LargeFont,
-    TextFont
+#[derive(Default)]
+struct Ls {
+    search_term: TextInputState
 }
 
-nwg_template!(
-    head: setup_ui<GuiId>,
-    controls: [
-        (MainWindow, nwg_window!(title="Lore Seeker"; size=(300, 57))),
-        (SearchInput, nwg_textinput!(
-            parent=MainWindow;
-            position=(5, 5);
-            size=(212, 21);
-            font=Some(TextFont)
-        )),
-        (SearchButton, nwg_button!(
-            parent=MainWindow;
-            text="Search";
-            position=(221, 4);
-            size=(75, 23);
-            font=Some(TextFont)
-        )),
-        (InstallTriceButton, nwg_button!(
-            parent=MainWindow;
-            text="Install Cockatrice";
-            position=(4, 30);
-            size=(292, 23);
-            font=Some(TextFont)
-        )),
-        (Label(0), LabelT {
-            parent: MainWindow,
-            text: format!("Lore Seeker Desktop version {}", &GIT_COMMIT_HASH[..7]),
-            position: (5, 30),
-            size: (300, 25),
-            font: Some(TextFont),
-            visible: true,
-            disabled: true,
-            align: HTextAlign::Left
-        })
-    ];
-    events: [
-        (SearchButton, StartSearch, Event::Click, |ui, _, _, _| {
-            let query = nwg_get!(ui; (SearchInput, nwg::TextInput)).get_text();
-            if let Err(e) = open(&format!("https://loreseeker.fenhl.net/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
-                error_message("Lore Seeker: Error opening website", &format!("{:?}", e));
-            }
-        }),
-        (InstallTriceButton, InstallTrice, Event::Click, |_, _, _, _| {
-            if let Err(e) = trice::install(false) {
-                error_message("Lore Seeker: Error installing Cockatrice", &format!("{}", e));
-            }
-        })
-    ];
-    resources: [
-        //(LargeFont, nwg_font!(family="Arial"; size=27)),
-        (TextFont, nwg_font!(family="Arial"; size=17))
-    ];
-    values: []
-);
-
-fn gui_main() -> Result<(), nwg::Error> {
-    let app = Ui::new()?;
-    setup_ui(&app)?;
-    dispatch_events();
-    Ok(())
+impl Layout for Ls {
+    fn layout(&self, info: LayoutInfo<Ls>) -> Dom<Ls> {
+        Dom::div()
+            .with_child(Dom::div() // search bar
+                .with_child(TextInput::new().bind(info.window, &self.search_term, self).dom(&self.search_term))
+                .with_child(Button::with_label("Search").dom()
+                    .with_callback(On::MouseUp, search)
+                )
+            )
+            .with_child(Button::with_label("Install Cockatrice").dom()
+                .with_callback(On::MouseUp, install_trice)
+            )
+            .with_child(Label::new(format!("Lore Seeker Desktop version {}", &GIT_COMMIT_HASH[..7])).dom())
+    }
 }
 
-fn update_loop() {
-    loop {
-        match update_check() {
-            Ok(true) => (),
-            Ok(false) => {
-                if yesno("An update for Lore Seeker Desktop is available. Open download page now?") { //TODO download update automatically instead
-                    if let Err(e) = open("https://github.com/fenhl/lore-seeker-desktop/releases") {
-                        error_message("Lore Seeker: Error opening download page", &format!("{:?}", e));
+fn install_trice(_: CallbackInfo<Ls>) -> UpdateScreen {
+    if let Err(e) = trice::install(false) {
+        error_message("Lore Seeker: Error installing Cockatrice", &format!("{}", e));
+    }
+    DontRedraw
+}
+
+fn search(info: CallbackInfo<Ls>) -> UpdateScreen {
+    let query = &info.state.data.search_term.text;
+    if let Err(e) = open(&format!("https://lore-seeker.cards/card?q={}", urlencoding::encode(if query.is_empty() { "*" } else { &query }))) {
+        error_message("Lore Seeker: Error opening website", &format!("{:?}", e));
+    }
+    DontRedraw
+}
+
+fn update_timer(_: TimerCallbackInfo<Ls>) -> (UpdateScreen, TerminateTimer) {
+    match client() {
+        Ok(client) => {
+            match update_check(&client) {
+                Ok(true) => (DontRedraw, TerminateTimer::Continue),
+                Ok(false) => if yesno("An update for Lore Seeker Desktop is available. Download now?") {
+                    match save_file_dialog(None) {
+                        Some(save_path) => match download_update(&client, save_path) {
+                            Ok(()) => {
+                                msg_box("Update downloaded. This version of Lore Seeker Desktop will now close. Please open the new version.");
+                                exit(0); //TODO exit app cleanly or even auto-restart
+                            }
+                            Err(e) => {
+                                error_message("Lore Seeker: Error downloading update", &format!("{}", e));
+                                (DontRedraw, TerminateTimer::Continue)
+                            }
+                        },
+                        None => {
+                            error_message("Lore Seeker: Error checking for updates", &format!("Error determining save path"));
+                            (DontRedraw, TerminateTimer::Continue)
+                        }
                     }
+                } else {
+                    msg_box("Lore Seeker update ignored, will stop checking for updates. Restart Lore Seeker to resume update checks.");
+                    (DontRedraw, TerminateTimer::Terminate)
+                },
+                Err(e) => {
+                    error_message("Lore Seeker: Error checking for updates", &format!("{}", e));
+                    (DontRedraw, TerminateTimer::Continue)
                 }
             }
-            Err(e) => { error_message("Lore Seeker: Error checking for updates", &format!("{}", e)); }
+            //TODO check for updated Cockatrice files
         }
-        //TODO check for updated Cockatrice files
-        thread::sleep(Duration::from_secs(3600));
+        Err(e) => {
+            error_message("Lore Seeker: Error checking for updates", &format!("Error creating client: {}", e));
+            (DontRedraw, TerminateTimer::Continue)
+        }
     }
 }
 
 fn main() {
-    if let Err(e) = thread::Builder::new().name("Lore Seeker update check".into()).spawn(update_loop) {
-        fatal_message("Lore Seeker: Error starting update check", &format!("{:?}", e));
-    }
-    if let Err(e) = gui_main() {
-        fatal_message("Lore Seeker: Error creating GUI", &format!("{:?}", e));
-    }
+    let mut app = App::new(Ls::default(), AppConfig::default()).unwrap();
+    let window = app.create_window(WindowCreateOptions::default(), css::native()).unwrap();
+    app.app_state.add_timer(TimerId::new(), Timer::new(update_timer).with_interval(Duration::from_secs(3600)));
+    app.run(window).unwrap();
 }

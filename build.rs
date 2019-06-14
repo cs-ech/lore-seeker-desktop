@@ -1,5 +1,3 @@
-extern crate winres;
-
 use std::{
     fs::File,
     io::{
@@ -8,6 +6,7 @@ use std::{
     },
     process::Command
 };
+#[cfg(windows)]
 use winres::WindowsResource;
 
 /// Modified from <https://stackoverflow.com/questions/43753491/include-git-commit-hash-as-string-into-rust-program>

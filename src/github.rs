@@ -2,32 +2,8 @@
 
 #![allow(missing_docs)] //TODO
 
-use std::fmt;
-use reqwest;
-
-/// An error that can occur in the GitHub API.
-#[derive(Debug)]
-pub enum Error {
-    /// An error occurred in the `reqwest` crate.
-    Reqwest(reqwest::Error),
-    /// The latest release's tag name is not listed in the repo's tags.
-    TagNotFound
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Error {
-        Error::Reqwest(e)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Reqwest(ref e) => e.fmt(f),
-            Error::TagNotFound => write!(f, "Release tag not found.")
-        }
-    }
-}
+use serde_derive::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct Release {
@@ -72,7 +48,7 @@ impl Repo {
         }
     }
 
-    pub fn latest_release(&self, client: &reqwest::Client) -> Result<Release, Error> {
+    pub fn latest_release(&self, client: &reqwest::Client) -> Result<Release, reqwest::Error> {
         Ok(
             client.get(&format!("https://api.github.com/repos/{}/{}/releases/latest", self.user, self.name))
                 .send()?
@@ -82,7 +58,7 @@ impl Repo {
     }
 
     /// Creates a draft release, which can be published using `Repo::publish_release`.
-    pub fn create_release(&self, client: &reqwest::Client, name: String, tag_name: String, body: String) -> Result<Release, Error> {
+    pub fn create_release(&self, client: &reqwest::Client, name: String, tag_name: String, body: String) -> Result<Release, reqwest::Error> {
         Ok(
             client.post(&format!("https://api.github.com/repos/{}/{}/releases", self.user, self.name))
                 .json(&json!({
@@ -97,7 +73,7 @@ impl Repo {
         )
     }
 
-    pub fn publish_release(&self, client: &reqwest::Client, release: Release) -> Result<Release, Error> {
+    pub fn publish_release(&self, client: &reqwest::Client, release: Release) -> Result<Release, reqwest::Error> {
         Ok(
             client.patch(&format!("https://api.github.com/repos/{}/{}/releases/{}", self.user, self.name, release.id))
                 .json(&json!({"draft": false}))
@@ -107,7 +83,7 @@ impl Repo {
         )
     }
 
-    pub fn release_attach(&self, client: &reqwest::Client, release: &Release, name: &str, content_type: &'static str, body: impl Into<reqwest::Body>) -> Result<ReleaseAsset, Error> {
+    pub fn release_attach(&self, client: &reqwest::Client, release: &Release, name: &str, content_type: &'static str, body: impl Into<reqwest::Body>) -> Result<ReleaseAsset, reqwest::Error> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(reqwest::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_static(content_type));
         Ok(
@@ -121,7 +97,7 @@ impl Repo {
         )
     }
 
-    pub fn tags(&self, client: &reqwest::Client) -> Result<Vec<Tag>, Error> {
+    pub fn tags(&self, client: &reqwest::Client) -> Result<Vec<Tag>, reqwest::Error> {
         Ok(
             client.get(&format!("https://api.github.com/repos/{}/{}/tags", self.user, self.name))
                 .send()?

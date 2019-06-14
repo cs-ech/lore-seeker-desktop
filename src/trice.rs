@@ -2,17 +2,13 @@
 
 use std::{
     fmt,
-    io::self,
+    io,
     process::Command
 };
 use itertools::Itertools;
-use reqwest;
-use tempfile;
-use super::{
-    github::{
-        self,
-        Repo
-    },
+use wrapped_enum::wrapped_enum;
+use crate::{
+    github::Repo,
     util::client
 };
 
@@ -35,8 +31,6 @@ wrapped_enum! {
     #[derive(Debug)]
     pub enum Error {
         #[allow(missing_docs)]
-        GitHub(github::Error),
-        #[allow(missing_docs)]
         Io(io::Error),
         #[allow(missing_docs)]
         Other(OtherError),
@@ -48,7 +42,6 @@ wrapped_enum! {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::GitHub(ref e) => e.fmt(f),
             Error::Io(ref e) => e.fmt(f),
             Error::Other(OtherError::Installer) => write!(f, "Cockatrice Setup failed."),
             Error::Other(OtherError::MissingAsset) => write!(f, "Could not find download link for Cockatrice."),
