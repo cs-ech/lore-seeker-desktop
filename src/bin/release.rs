@@ -2,8 +2,6 @@
 #![deny(unused, unused_qualifications)]
 #![forbid(unused_import_braces)]
 
-#[macro_use] extern crate wrapped_enum;
-
 use std::{
     cmp::Ordering::*,
     fs::File,
@@ -13,10 +11,12 @@ use std::{
     },
     process::Command
 };
+use itertools::Itertools;
 use semver::{
     SemVerError,
     Version
 };
+use wrapped_enum::wrapped_enum;
 use lore_seeker_desktop::{
     github::Repo,
     util
@@ -47,13 +47,16 @@ fn main() -> Result<(), Error> {
     let repo = Repo::new("fenhl", "lore-seeker-desktop");
     let client = util::release_client()?;
     let metadata = cargo_metadata::MetadataCommand::default().exec()?;
-    let local_version = &metadata.packages.first().ok_or(OtherError::MissingPackage)?.version;
+    let (pkg,) = metadata.packages.into_iter().filter(|pkg| pkg.name == "lore-seeker").collect_tuple().ok_or(OtherError::MissingPackage)?;
+    let local_version = pkg.version;
     let remote_version = repo.latest_release(&client)?.tag_name[1..].parse::<Version>()?;
     match local_version.cmp(&remote_version) {
         Less => { return Err(OtherError::VersionRegression.into()); }
         Equal => { return Err(OtherError::SameVersion.into()); }
         Greater => {}
     }
+    if !Command::new("rustup").arg("update").arg("stable").status()?.success() { return Err(OtherError::Command.into()); }
+    if !Command::new("rustup").arg("update").arg("stable-i686-pc-windows-msvc").status()?.success() { return Err(OtherError::Command.into()); }
     if !Command::new("cargo").arg("build").arg("--bin=lore-seeker-desktop").arg("--release").status()?.success() { return Err(OtherError::Command.into()); }
     if !Command::new("cargo").arg("+stable-i686-pc-windows-msvc").arg("build").arg("--bin=lore-seeker-desktop").arg("--release").arg("--target-dir=target-x86").status()?.success() { return Err(OtherError::Command.into()); }
     let release_notes = {
